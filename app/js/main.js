@@ -10,14 +10,38 @@ require([
   "esri/views/SceneView",
   "esri/geometry/Polyline",
   "esri/symbols/SimpleFillSymbol",
+  "esri/layers/GraphicsLayer",
   "vue",
   "dojo/domReady!"
-], function(watchUtils, MapView, Extent, Map, Graphic, request, geoEngine, Polygon, SceneView, Polyline, SFS, Vue) {
+], function(watchUtils, MapView, Extent, Map, Graphic, request, geoEngine, Polygon, SceneView, Polyline, SFS, GraphicsLayer, Vue) {
+
+  Vue.component('slice-tools', {
+    template: `
+      <div v-bind:style="styles">
+      </div>`,
+    data: () => {
+      return {
+        styles: {
+          background: 'rgba(255,255,255,.7)',
+          width: '90%',
+          height: '30px',
+          position: 'absolute',
+          top: '5px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          borderRadius: '4px'
+        }
+      };
+    },
+    mounted: function(){
+    }
+  });
 
   
   Vue.component('view-slice', {
     template: `
       <div v-bind:style="styles">
+        <slice-tools></slice-tools>
       </div>`,
     props: [
       'id',
@@ -31,18 +55,29 @@ require([
           height: 'auto',
           flex: 1,
           marginBottom: '10px',
-          marginTop: '10px'
+          marginTop: '10px',
+          marginRight: '10px',
+          borderRadius: '4px',
+          border: '1px solid black',
+          position: 'relative'
         }
       };
     },
     mounted: function(){
       if (!this.view){
         this.view = new SceneView({
+          ui: {
+            components: []
+          },
           container: this.$el,
           map: map,
           extent: this.extent,
           viewingMode: 'local',
-          clippingArea: this.extent
+          clippingArea: this.extent,
+          environment: {
+            starsEnabled: false,
+            atmosphere: null
+          }
         });
         this.setUp(this.extent);
       }
@@ -141,7 +176,7 @@ require([
 
   const map = new Map({
     basemap: "satellite",
-    ground: "world-elevation"
+    ground: "world-elevation",
   });
   
   const mv = new MapView({
@@ -149,6 +184,8 @@ require([
     map: map
   });
   
+  let lastGraphic = null;
+
   mv.on('drag', ["Control"], e => {
     e.stopPropagation();
     let origin = mv.toMap(e.origin);
@@ -160,15 +197,22 @@ require([
       ymax: Math.max(origin.y, curr.y),
       spatialReference: { wkid: 3857 }
     });
+    let g = new Graphic({
+      symbol: fillSym,
+      geometry: extent
+    });
     if (e.action === 'update'){
-      let g = new Graphic({
-        symbol: fillSym,
-        geometry: extent
-      });
-      
-      mv.graphics.removeAll();
+      if (lastGraphic){
+        mv.graphics.remove(lastGraphic);
+      }
+      lastGraphic = g;
       mv.graphics.add(g)
     } else if (e.action === 'end'){
+      if (lastGraphic){
+        mv.graphics.remove(lastGraphic);
+      }
+      lastGraphic = null;
+      mv.graphics.add(g)
       sliceContainer.addSlice(extent);
     }
   });

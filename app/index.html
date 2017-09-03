@@ -7,10 +7,17 @@
   <style>
     html,
     body,
-    #vm-container, #mapDiv, #reize-bar {
+    #vm-container, #reize-bar {
       padding: 0;
       margin: 0;
       height: 100%;
+    }
+    #mapDiv{
+      margin-top: 10px;
+      margin-bottom: 10px;
+      margin-left: 10px;
+      border-radius: 4px;
+      border: 1px solid black;
     }
     body{
       display: flex;
@@ -19,7 +26,7 @@
       width: 50%;
     }
     #resize-bar{
-      width: 5%;
+      width: 3%;
     }
     #vm-container{
       display: flex;
@@ -48,8 +55,10 @@
   <div id="mapDiv"></div>
   <div id="resize-bar"></div>
   <div id="vm-container">
-    <view-slice v-for="slice in slices" :id="slice.id" :extent="slice.extent">
-    </view-slice>
+    <template v-for="slice in slices">
+      <view-slice :id="slice.id" :extent="slice.extent">
+      </view-slice>      
+    </template>
   </div>
 </body>
 </html>
