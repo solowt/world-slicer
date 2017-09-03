@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>World Slicer</title>
+  <style>
+    html,
+    body,
+    #vm-container, #mapDiv, #reize-bar {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+    }
+    body{
+      display: flex;
+    }
+    #vm-container, #mapDiv{
+      width: 50%;
+    }
+    #resize-bar{
+      width: 5%;
+    }
+    #vm-container{
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+
+  <link rel="stylesheet" href="../js_api/4.4/esri/css/main.css">
+  <script>
+    window.dojoConfig = {
+      packages: [
+        {
+          name: "vue",
+          location: "/../../node_modules/vue/dist",
+          main: "vue"
+        }
+      ]
+    };
+  </script>
+  <script src="../js_api/4.4/init.js"></script>
+
+  <script src="js/main.js"></script>
+</head>
+
+<body>
+  <div id="mapDiv"></div>
+  <div id="resize-bar"></div>
+  <div id="vm-container">
+    <view-slice v-for="slice in slices" :id="slice.id" :extent="slice.extent">
+    </view-slice>
+  </div>
+</body>
+</html>
