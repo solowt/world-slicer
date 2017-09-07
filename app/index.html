@@ -18,19 +18,26 @@
       margin-left: 10px;
       border-radius: 4px;
       border: 1px solid black;
+      width: 50%;
     }
     body{
       display: flex;
-    }
-    #vm-container, #mapDiv{
-      width: 50%;
     }
     #resize-bar{
       width: 3%;
     }
     #vm-container{
+      position: relative;
       display: flex;
-      flex-direction: column;
+      flex: 1 1 50%;
+
+    }
+    #appHolder{
+      position: relative;
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
     }
   </style>
 
@@ -52,13 +59,9 @@
 </head>
 
 <body>
-  <div id="mapDiv"></div>
-  <div id="resize-bar"></div>
-  <div id="vm-container">
-    <template v-for="slice in slices">
-      <view-slice :id="slice.id" :extent="slice.extent">
-      </view-slice>      
-    </template>
+  <div id="appHolder">
+    <div id="mapDiv"></div>
+    <div id="vm-container"></div>
   </div>
 </body>
 </html>
