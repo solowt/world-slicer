@@ -36,10 +36,9 @@ require([
           borderTop: '1px solid black',
           borderBottom: '1px solid black',
           height: 'auto',
-          background: 'rgba(0, 0, 0, .25)',
+          background: 'rgba(0, 0, 0, .5)',
           cursor: 'ew-resize',
           flex: '0 0 15px',
-          borderRadius: '4px',
           position: 'relative'
         },
         svgStyles: {
@@ -91,14 +90,12 @@ require([
         locked: true,
         styles: {
           display: 'flex',
-          background: 'rgba(255,255,255,.7)',
-          width: '90%',
+          background: 'rgb(160, 160, 160)',
+          width: 'auto',
           height: '30px',
           position: 'absolute',
           top: '5px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          borderRadius: '4px'
+          left: '5px',
         },
         buttonStyles: {
           cursor: 'pointer',
@@ -141,7 +138,6 @@ require([
         view: null,
         syncHandle: null,
         styles: {
-          borderRadius: '4px',
           border: '1px solid black',
           height: '100%',
           width: '100%',
@@ -249,15 +245,14 @@ require([
         flex: '1 1 0%',
         minWidth: 0,
         minHeight: 0,
-        marginBottom: '10px',
+        marginBottom: '12px',
         marginTop: '10px',
         marginRight: '10px'
       },
       resize: {
-        background: 'rgba(0, 0, 0, .25)',
+        background: 'rgba(0, 0, 0, .5)',
         width: '100%',
         borderRight: '1px solid black',
-        borderRadius: '0 4px 4px 0',
         height: '20px',
         cursor: 'ns-resize'
       },
@@ -311,6 +306,14 @@ require([
           let graphic = this.slices[idx].graphic;
           mv.graphics.remove(graphic);
           this.slices.splice(idx, 1);
+        }
+
+        // if there is one left, set it back to flex
+        if (this.slices.length === 1){
+          setTimeout(()=>{
+            let currSlice = this.$el.getElementsByClassName('slice-holder')[0];
+            currSlice.style.flex = '1 1 0%';
+          },0);
         }
       },
       onDown: function(e, idx){
