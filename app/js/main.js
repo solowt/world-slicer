@@ -99,7 +99,7 @@ require([
              viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
           <g>
             <g>
-              <path d="M437.65,357.018l-49.086,58.904l-117.53-204.323v-76.167h100.227V45.228H240.966v166.372L123.435,415.922L74.35,357.018
+              <path :style="samplerStyle" d="M437.65,357.018l-49.086,58.904l-117.53-204.323v-76.167h100.227V45.228H240.966v166.372L123.435,415.922L74.35,357.018
                 L0,466.772h512L437.65,357.018z M207.16,330.672L256,245.767l48.84,84.906C272.609,337.367,239.392,337.368,207.16,330.672z"/>
             </g>
           </g>
@@ -123,6 +123,9 @@ require([
           height: 'auto',
           width: 'auto',
           padding: '5px'
+        },
+        samplerStyle: {
+          fill: null
         }
       };
     },
@@ -130,7 +133,12 @@ require([
     },
     methods: {
       toggleSampler: function(){
-        this.$parent.toggleSampler();
+        let res = this.$parent.toggleSampler();
+        if (res){
+          this.samplerStyle.fill = 'white';
+        } else {
+          this.samplerStyle.fill = 'black';
+        }
       },
       toggleLock: function(){
         if (this.locked){
@@ -197,9 +205,14 @@ require([
     methods: {
       toggleSampler: function(){
         if (this.samplerHandle){
+          if (this.currElevGraphic) {
+            this.view.graphics.remove(this.currElevGraphic);
+            this.currElevGraphic = null;
+          }
           this.samplerHandle.remove();
           this.samplerHandle = null;
           this.styles.cursor = null;
+          return false;
         } else {
           this.styles.cursor = 'pointer';
           this.view.then(sv => {
@@ -214,12 +227,12 @@ require([
                 }
                 this.currElevGraphic = getSampleGraphic(displayElevation, p, true);
                 if (this.currElevGraphic){
-                  let clientSample =  sampleTerrain(sv, p);
-                  if (clientSample && p.z >= clientSample) sv.graphics.add(this.currElevGraphic);
+                  if (sv.clippingArea.contains(p)) sv.graphics.add(this.currElevGraphic);
                 }
               }
             });
           });
+          return true;
         }
       },
       setUp: function(extent){
@@ -458,7 +471,14 @@ require([
     constraints: {
       snapToZoom: false
     },
-    zoom: 2
+    zoom: 2,
+    extent: {
+      xmin:-297306.04346465436,
+      xmax:2726305.4191318387,
+      ymin:4759146.4936137395,
+      ymax:6368488.078544131,
+      spatialReference: { wkid: 3857 }
+    }
   });
   
   let lastGraphic = null;
