@@ -635,12 +635,12 @@ require([
       symbol: new PointSymbol3D({
         symbolLayers: [new TextSymbol3DLayer({
           material: { color: 'orange' },
-          size: 10,
           halo: {
             color: 'black',
-            size: 2
+            size: 1
           },
-          text: `${elevation}m`
+          text: `${elevation}m`,
+          size: 10
         })],
         verticalOffset: showCallout ? {
           screenLength: '20px',
