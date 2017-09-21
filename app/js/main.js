@@ -1,6 +1,7 @@
 require([
   "esri/core/watchUtils",
   "esri/views/MapView",
+  "esri/geometry/Point",
   "esri/geometry/Extent",
   "esri/Map",
   "esri/Graphic",
@@ -11,13 +12,20 @@ require([
   "esri/geometry/Polyline",
   "esri/symbols/SimpleFillSymbol",
   "esri/layers/GraphicsLayer",
+  "esri/symbols/PointSymbol3D",
+  "esri/symbols/IconSymbol3DLayer",
+  "esri/symbols/LabelSymbol3D",
+  "esri/symbols/TextSymbol3DLayer",
+  "esri/symbols/callouts/LineCallout3D",
   "vue",
   "dojo/domReady!"
 ], function(
-  watchUtils, MapView,
+  watchUtils, MapView, Point,
   Extent, Map, Graphic, request,
   geoEngine, Polygon, SceneView,
-  Polyline, SFS, GraphicsLayer, Vue
+  Polyline, SFS, GraphicsLayer,
+  PointSymbol3D, IconSymbol3DLayer, LabelSymbol3D,
+  TextSymbol3DLayer, LineCallout3D, Vue
   ) {
   Vue.component('resize-bar', {
     template:`<div v-on:mousedown.stop.prevent="onDown" :style="styles">
@@ -84,6 +92,19 @@ require([
             <path d="M22 14H2c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V16c0-1.1-.9-2-2-2zm0 16H2V16h20v14zm2-30a8 8 0 0 0-7.999 8L16 14h2V8a6 6 0 0 1 11.999 0H30v2h-2V8a4 4 0 0 0-8 0v6h2V8a2 2 0 0 1 4.001 0v4H32V8a8 8 0 0 0-8-8zM14 22v-2h-2v-2h-2v10h2v-2h2v-2h-2v-2z"/>
           </svg>
         </div>
+
+        <div :style="buttonStyles" title="Elevation Sampler" v-on:click="toggleSampler">
+          <!--Made by "http://www.freepik.com" title="Freepik from https://www.flaticon.com/ -->
+          <svg version="1.1" height="20" width="20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+             viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+          <g>
+            <g>
+              <path d="M437.65,357.018l-49.086,58.904l-117.53-204.323v-76.167h100.227V45.228H240.966v166.372L123.435,415.922L74.35,357.018
+                L0,466.772h512L437.65,357.018z M207.16,330.672L256,245.767l48.84,84.906C272.609,337.367,239.392,337.368,207.16,330.672z"/>
+            </g>
+          </g>
+          </svg>
+        </div>
       </div>`,
     data: () => {
       return {
@@ -108,6 +129,9 @@ require([
     mounted: function(){
     },
     methods: {
+      toggleSampler: function(){
+        this.$parent.toggleSampler();
+      },
       toggleLock: function(){
         if (this.locked){
           this.$parent.syncHandle.remove();
@@ -135,9 +159,12 @@ require([
     ],
     data: () => {
       return {
+        samplerHandle: null,
+        currElevGraphic: null,
         view: null,
         syncHandle: null,
         styles: {
+          cursor: null,
           border: '1px solid black',
           height: '100%',
           width: '100%',
@@ -168,6 +195,33 @@ require([
       this.syncHandle.remove();
     },
     methods: {
+      toggleSampler: function(){
+        if (this.samplerHandle){
+          this.samplerHandle.remove();
+          this.samplerHandle = null;
+          this.styles.cursor = null;
+        } else {
+          this.styles.cursor = 'pointer';
+          this.view.then(sv => {
+            this.samplerHandle = sv.on('pointer-move', e => {
+              let p = sv.toMap(e);
+              if (p){
+                let elevation = p.z;
+                let displayElevation = elevation.toFixed(3);
+                if (this.currElevGraphic) {
+                  sv.graphics.remove(this.currElevGraphic);
+                  this.currElevGraphic = null;
+                }
+                this.currElevGraphic = getSampleGraphic(displayElevation, p, true);
+                if (this.currElevGraphic){
+                  let clientSample =  sampleTerrain(sv, p);
+                  if (clientSample && p.z >= clientSample) sv.graphics.add(this.currElevGraphic);
+                }
+              }
+            });
+          });
+        }
+      },
       setUp: function(extent){
         const edges = [
           new Polyline({
@@ -208,6 +262,18 @@ require([
             let min = Infinity;
             let max = -Infinity;
 
+
+            results.forEach(r => {
+              let startingPoint =  new Point({
+                x: r.geometry.paths[0][0][0],
+                y: r.geometry.paths[0][0][1],
+                spatialReference: { wkid: 3857 }
+              });
+
+              let cornerGraphic = getSampleGraphic(r.geometry.paths[0][0][2].toFixed(3), startingPoint, true);
+              sv.graphics.add(cornerGraphic);
+            });
+
             let averageSide = (distance(results[0].geometry.paths[0][0], results[1].geometry.paths[0][0]) + distance(results[1].geometry.paths[0][0], results[2].geometry.paths[0][0])) / 2;
 
             let allPaths = results[0].geometry.paths[0].concat(results[1].geometry.paths[0], results[2].geometry.paths[0], results[3].geometry.paths[0]);
@@ -220,7 +286,7 @@ require([
               }
             }
 
-            let depth = min - averageSide / 2;
+            let depth = min - averageSide / 4;
 
             results.forEach((result, idx) => {
               processEdgeResults(result.geometry.paths[0], idx, depth, sv);
@@ -249,6 +315,11 @@ require([
         marginTop: '10px',
         marginRight: '10px'
       },
+      noSlices: {
+        textAlign: 'center',
+        fontSize: '30pt',
+        marginTop: '20%'
+      },
       resize: {
         background: 'rgba(0, 0, 0, .5)',
         width: '100%',
@@ -271,7 +342,7 @@ require([
       <div id="vm-container">
         <resize-bar></resize-bar>
         <div :style="flexbox">
-          <div v-if="slices.length === 0">
+          <div :style="noSlices" v-if="slices.length === 0">
             Hold Control and Drag to Define a Slice.
           </div>
           <div :style="sliceHolder" v-for="(slice, idx) in slices" class="slice-holder" :key="slice.id">
@@ -549,5 +620,40 @@ require([
         interactWatcher.remove();
       }
     }
+  }
+
+  function sampleTerrain(view, point){
+    if (view && view.basemapTerrain){
+      return view.basemapTerrain.getElevation(point);
+    }
+    return null;
+  }
+
+  function getSampleGraphic(elevation, point, showCallout){
+    return new Graphic({
+      geometry: point,
+      symbol: new PointSymbol3D({
+        symbolLayers: [new TextSymbol3DLayer({
+          material: { color: 'orange' },
+          size: 10,
+          halo: {
+            color: 'black',
+            size: 2
+          },
+          text: `${elevation}m`
+        })],
+        verticalOffset: showCallout ? {
+          screenLength: '20px',
+          minWorldLength: 100
+        } : null,
+        callout: showCallout ? new LineCallout3D({
+          size: 1.5,
+          color: "white",
+          border: {
+            color: "black"
+          }
+        }) : null
+      })
+    });
   }
 });
